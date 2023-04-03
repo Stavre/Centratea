@@ -1,0 +1,8 @@
+Centering:
+The server generates a number of four different digits;
+Clients connect to the server by identifying themselves with a unique name;
+A client proposes to the server the solution for the number to be guessed, in the form of a number of four different digits;
+The server responds to the client with the number of centered numbers (digits that are found in the number in the same position)
+,respectively uncentered (digits that are found in the number, but not in the same position);
+When a client has guessed the number of the server, it notifies all clients with the name of the person who guessed and the number
+attempts from which he did it, generating another number, after which the game resumes.
