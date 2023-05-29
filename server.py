@@ -1,21 +1,17 @@
 import socket
 import threading
 from threading import Lock
-# connection data
 from game import generateNumber, evaluateSolution
 
+# connection data
 host = '127.0.0.1'
 port = 55555
-
-# starting server
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind((host, port))
-server.listen()
 
 # list for clients and usernames
 clients = []
 usernames = []
 no_tries = []
+solution = 0
 
 # send messages to all connected clients
 def broadcast(message):
@@ -24,7 +20,8 @@ def broadcast(message):
 
 # handling message from clients
 def handle(client, no_tries: list, lock):
-    solution = generateNumber()
+    global solution
+    global answer
     while True:
         try:
             # broadcast message
@@ -40,38 +37,36 @@ def handle(client, no_tries: list, lock):
             print([int(i) for i in list(number)])
             lock.acquire()
             no_tries[usernames.index(user)] = no_tries[usernames.index(user)] + 1
-            lock.release()
             r = evaluateSolution(solution, [int(i) for i in list(number)])
+            lock.release()
             if r != (4, 0):
                 client.send('number of centered digits: {} number of uncentered digits {} try number: {}'.format(r[0], r[1], no_tries[usernames.index(user)]).encode('ascii'))
             else:
-                solution = generateNumber()
                 broadcast('User {} has guessed the number in {} tries. A new number has been generated.'.format(user, no_tries[usernames.index(user)]).encode('ascii'))
                 lock.acquire()
+                solution = generateNumber()
                 no_tries = [0 for _ in no_tries]
                 lock.release()
-
-            # broadcast(message)
         except:
             # removing and closing client
             lock.acquire()
             index = clients.index(client)
             clients[index].close()
             clients.pop(index)
-
-
             nickname = usernames[index]
             broadcast('{} left!'.format(nickname).encode('ascii'))
             usernames.pop(index)
             no_tries.pop(index)
             lock.release()
-
-
             break
 
 # receiving / listening
 def receive():
+    global solution
     lock = Lock()
+    lock.acquire()
+    solution = generateNumber()
+    lock.release()
 
     while True:
         # accept connection
@@ -95,5 +90,11 @@ def receive():
         # start thread for client
         thread = threading.Thread(target=handle, args=(client, no_tries, lock, ))
         thread.start()
-print("Server is listening ...")
-receive()
+
+
+# starting server
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+    server.bind((host, port))
+    server.listen()
+    print("Server is listening ...")
+    receive()
